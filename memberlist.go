@@ -30,7 +30,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/hashicorp/go-metrics/compat"
+	metrics "github.com/hashicorp/go-metrics/compat"
 	"github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/go-sockaddr"
 	"github.com/miekg/dns"
@@ -522,7 +522,6 @@ func (m *Memberlist) UpdateNode(timeout time.Duration) error {
 	// Get the existing node
 	m.nodeLock.RLock()
 	state := m.nodeMap[m.config.Name]
-	m.nodeLock.RUnlock()
 
 	// Format a new alive message
 	a := alive{
@@ -533,6 +532,7 @@ func (m *Memberlist) UpdateNode(timeout time.Duration) error {
 		Meta:        meta,
 		Vsn:         m.config.BuildVsnArray(),
 	}
+	m.nodeLock.RUnlock()
 	notifyCh := make(chan struct{})
 	m.aliveNode(&a, notifyCh, true)
 
