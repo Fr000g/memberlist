@@ -545,7 +545,30 @@ func (m *Memberlist) UpdateNode(timeout time.Duration) error {
 		select {
 		case <-notifyCh:
 		case <-timeoutCh:
-			return fmt.Errorf("timeout waiting for update broadcast")
+			// Gather diagnostic information
+			aliveCount := 0
+			deadCount := 0
+			leftCount := 0
+
+			m.nodeLock.RLock()
+			totalNodes := len(m.nodes)
+			for _, n := range m.nodes {
+				if n.State == StateAlive {
+					aliveCount++
+				} else if n.State == StateDead {
+					deadCount++
+				} else if n.State == StateLeft {
+					leftCount++
+				}
+			}
+			m.nodeLock.RUnlock()
+
+			// Get more diagnostic info
+			broadcastQueueDepth := m.broadcasts.NumQueued()
+			healthScore := m.awareness.GetHealthScore()
+
+			return fmt.Errorf("timeout waiting for update broadcast (timeout=%s, total_nodes=%d, alive=%d, dead=%d, left=%d, broadcast_queue=%d, health_score=%d)",
+				timeout, totalNodes, aliveCount, deadCount, leftCount, broadcastQueueDepth, healthScore)
 		}
 	}
 	return nil
